@@ -1,16 +1,33 @@
 pipeline {
     agent any
+
+    tools {
+        jdk 'jdk8'
+    }
+    
+    triggers {
+        githubPush()
+    }
+    
     environment {
         DOCKER_IMAGE_NAME = "tuandevops/train-schedule"
     }
+    
     stages {
+        stage('Checkout') {
+            steps {
+                git branch: 'master', url: 'https://github.com/tuan-devops/cicd-pipeline-train-schedule-canary'
+            }
+        }
+
         stage('Build') {
             steps {
                 echo 'Running build automation'
-                sh './gradlew build --no-daemon'
+                sh 'chmod +x ./gradlew && ./gradlew build --no-daemon'
                 archiveArtifacts artifacts: 'dist/trainSchedule.zip'
             }
         }
+        
         stage('Build Docker Image') {
             when {
                 branch 'master'
@@ -24,6 +41,7 @@ pipeline {
                 }
             }
         }
+        
         stage('Push Docker Image') {
             when {
                 branch 'master'
@@ -37,6 +55,7 @@ pipeline {
                 }
             }
         }
+        
         stage('CanaryDeploy') {
             when {
                 branch 'master'
@@ -52,6 +71,7 @@ pipeline {
                 )
             }
         }
+        
         stage('DeployToProduction') {
             when {
                 branch 'master'
